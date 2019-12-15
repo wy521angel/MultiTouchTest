@@ -20,7 +20,6 @@ public class MultiTouchView2 extends View {
     float originalOffsetY;
     float downX;
     float downY;
-    int trackingPointerId;//追踪手指的id
 
     public MultiTouchView2(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -32,55 +31,46 @@ public class MultiTouchView2 extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+
+        //所有触摸手指的总坐标值相加和
+        float sumX = 0;
+        float sumY = 0;
+        int pointerCount = event.getPointerCount();
+        boolean isPointerUp = event.getActionMasked() == MotionEvent.ACTION_POINTER_UP;
+        for (int i = 0; i < pointerCount; i++) {
+            if (isPointerUp && i == event.getActionIndex()) {
+                //如果是抬起的事件 isPointerUp 并且当前遍历的是抬起的手指则不需要叠加坐标
+            } else {
+                sumX += event.getX(i);
+                sumY += event.getY(i);
+            }
+        }
+
+        //如果是抬起手指的操作，此处需要减一
+        if (isPointerUp) {
+            pointerCount --;
+        }
+        //多点触控的虚拟中心点坐标值
+        float focusX = sumX / pointerCount;
+        float focusY = sumY / pointerCount;
+
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
-                trackingPointerId = event.getPointerId(0);//拿到初始手指的id
-                downX = event.getX();
-                downY = event.getY();
+            case MotionEvent.ACTION_POINTER_DOWN:
+            case MotionEvent.ACTION_POINTER_UP:
+                downX = focusX;
+                downY = focusY;
                 originalOffsetX = offsetX;
                 originalOffsetY = offsetY;
                 break;
             case MotionEvent.ACTION_MOVE:
-                int index = event.findPointerIndex(trackingPointerId);
                 offsetX = originalOffsetX +//初始偏移
-                        event.getX(index) - downX;//由于手指移动导致的偏移
+                        focusX - downX;//由于手指移动导致的偏移
                 offsetY = originalOffsetY +
-                        event.getY(index) - downY;
+                        focusY - downY;
                 invalidate();
                 break;
-            case MotionEvent.ACTION_POINTER_DOWN:
-                int actionIndex = event.getActionIndex();
-                trackingPointerId = event.getPointerId(actionIndex);//拿到新落下手指的id
-                downX = event.getX(actionIndex);
-                downY = event.getY(actionIndex);
-                originalOffsetX = offsetX;
-                originalOffsetY = offsetY;
-                break;
-            case MotionEvent.ACTION_POINTER_UP:
-                actionIndex = event.getActionIndex();
-                //如果抬起的手指就是追踪的手指需要处理，否则不处理
-                if (trackingPointerId == event.getPointerId(actionIndex)) {
-                    int newIndex;//抬起手指后，事件的手指继承者的 index
-                    //此处约定抬起追踪的手指后，将事件移交给最大号的手指
-                    //比如现在有5个手指触摸到View，index 分别为 0 1 2 3 4
-                    // 抬起一个后，将事件传递给最大号的手指
-                    if (actionIndex == event.getPointerCount() - 1) {
-                        //如果抬起的手指是5号最大号手指 index 为 4，需要将事件移交给剩下的最大号手指，也就是4号手指 index 为3
-                        newIndex = event.getPointerCount() - 2;
-                    } else {
-                        //如果抬起的手指是3号不是最大号手指 ，需要将事件移交给最大号手指，也就是5号手指 index 为4
-                        newIndex = event.getPointerCount() - 1;
-                    }
-                    trackingPointerId = event.getPointerId(newIndex);//拿到继承手指的id
-                    downX = event.getX();
-                    downY = event.getY();
-                    originalOffsetX = offsetX;
-                    originalOffsetY = offsetY;
-                }
-                break;
-
         }
-
         return true;
     }
 

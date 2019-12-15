@@ -20,7 +20,7 @@ public class MultiTouchView1 extends View {
     float originalOffsetY;
     float downX;
     float downY;
-    int trackingPointerId;//追踪手指的id
+    int trackingPointerId;//接力型追踪手指的id
 
     public MultiTouchView1(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
